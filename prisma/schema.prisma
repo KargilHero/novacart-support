@@ -1,0 +1,58 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Conversation {
+  id                 String    @id @default(cuid())
+  customerId         String?
+  customerEmail      String?
+  customerName       String?
+  messages           Message[]
+  executionLogs      ExecutionLog[]
+  decision           String?  // "APPROVED", "DENIED", "PENDING"
+  reasoning          String?
+  processingTimeMs   Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], onDelete: Cascade)
+  role           String      // "user" or "assistant"
+  content        String      @db.Text
+  timestamp      DateTime    @default(now())
+
+  @@index([conversationId])
+  @@index([timestamp])
+}
+
+model ExecutionLog {
+  id             String      @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], onDelete: Cascade)
+  step           Int
+  action         String
+  toolName       String?
+  status         String      // "PENDING", "RUNNING", "SUCCESS", "FAILED", "RETRY"
+  duration       Int         // milliseconds
+  details        String?     @db.Text // JSON string
+  error          String?
+  retryCount     Int         @default(0)
+  timestamp      DateTime    @default(now())
+
+  @@index([conversationId])
+  @@index([timestamp])
+}
